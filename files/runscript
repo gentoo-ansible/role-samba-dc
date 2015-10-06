@@ -1,0 +1,31 @@
+#!/sbin/runscript
+# Copyright 1999-2015 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License, v2 or later
+
+name="Samba DC"
+description="Server to provide AD and SMB/CIFS services to clients."
+
+extra_started_commands="reload"
+
+command="/usr/sbin/samba"
+pidfile="/run/samba/samba.pid"
+
+depend() {
+	need net
+	use cupsd
+}
+
+start_pre() {
+	checkpath -d "$(dirname "$pidfile")"
+	unset TMP TMPDIR
+}
+
+start_post() {
+	unset TMP TMPDIR
+}
+
+reload() {
+	ebegin "Reloading $name"
+	start-stop-daemon --signal HUP "$command"
+	eend $?
+}

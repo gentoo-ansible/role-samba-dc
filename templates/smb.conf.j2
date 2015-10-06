@@ -1,0 +1,137 @@
+# {{ ansible_managed }}
+
+#
+# Global parameters
+#
+[global]
+
+# Specify the basic operating mode of a Samba server.
+server role = active directory domain controller
+
+# This controls what workgroup your server will appear to be in when
+# queried by clients.
+workgroup = {{ samba_netbios_domain }}
+
+# Specify the kerberos realm to use. The realm is used as the ADS equivalent of
+# the NT4 domain. It is usually set to the DNS name of the kerberos server.
+realm = {{ samba_dns_domain | upper }}
+
+# Sets the NetBIOS name by which a Samba server is known.
+netbios name = {{ samba_hostname | upper }}
+
+
+# The specific set of interfaces / networks to bind to (space separated).
+# This can be either the interface name or an IP address/netmask.
+interfaces = {{ samba_interfaces | join(' ') }}
+
+# Only bind to the named interfaces and/or networks; you must use the
+# 'interfaces' option above to use this.
+bind interfaces only = yes
+
+# If compiled with proper support for it, Samba will announce itself with
+# multicast DNS services like for example provided by the Avahi daemon.
+# This parameter allows disabling Samba to register itself.
+multicast dns register = {{ 'yes' if samba_multicast_dns_enabled | bool else 'no' }}
+
+{% if not samba_netbios_enabled | bool %}
+# Specifies which ports the server should listen on for SMB traffic.
+# Default is 445 139.
+smb ports = 445
+
+# Enabling this parameter will disable NetBIOS support in Samba.
+disable netbios = yes
+
+{% endif %}
+# This determines if nmbd(8) will produce Lanman announce broadcasts that are
+# needed by OS/2 clients in order for them to see the Samba server in their
+# browse list.
+lm announce = no
+
+# The minimum protocol version that the server will allow the client to use.
+server min protocol = NT1
+
+# Enable updates to the DNS over secure connections only.
+allow dns updates = secure only
+
+# Specify the DNS server that DNS requests will be forwarded to if they can not
+# be handled by Samba itself.
+dns forwarder = {{ samba_dns_forwarder }}
+
+
+# Path to a file (PEM format) containing the RSA certificate.
+tls certfile = {{ samba_tls_cert_file }}
+
+# Path to a file (PEM format) containing the RSA private key.
+tls keyfile = {{ samba_tls_key_file }}
+
+# Path to a file (PEM format) containing CA certificates of root CAs to trust
+# to sign certificates or intermediate CA certificates.
+tls cafile = {{ samba_tls_ca_file }}
+
+# Path to a file with Diffie-Hellman parameters which will be used with EDH
+# ciphers.
+tls dh params file = {{ samba_tls_dhparam_file }}
+
+
+# Path to a file containing a mapping of usernames from the clients to the
+# server.
+username map = /etc/samba/smbusers
+
+# Specify the number of seconds a mapping from the username map file or script
+# should be efficiently cached.
+username map cache time = 300
+
+# Specify the directory where roaming profiles (Desktop, NTuser.dat, etc)
+# will be stored. Empty string disables the use of romaing profile.
+logon path = {{ '""' if samba_logon_path == '' else samba_logon_path }}
+
+# This controls whether smbd(8) will attempt to map the 'inherit' and
+# 'protected' access control entry flags stored in Windows ACLs into an
+# extended attribute called user.SAMBA_PAI.
+map acl inherit = yes
+
+# POSIX attributes are stored in AD schema.
+idmap_ldb:use rfc2307 = yes
+
+
+# Use asynchronous I/O for reads bigger than 16KB request size.
+aio read size = 16384
+
+# Use asynchronous I/O for writes bigger than 16KB request size.
+aio write size = 16384
+
+# If yes, then some SMB read calls (mainly ReadAndX and ReadRaw) will use the
+# more efficient sendfile system call for files that are exclusively oplocked.
+use sendfile = yes
+
+# The number of minutes of inactivity before a connection is considered dead,
+# and it is disconnected. The deadtime only takes effect if the number of open
+# files is zero.
+deadtime = 60
+
+# Specify debug (logging) level.
+log level = {{ samba_log_level }}
+
+
+# This parameters controls how printer status information is interpreted on
+# your system; BSD, AIX, LPRNG, PLP, SYSV, HPUX, QNX, SOFTQ, CUPS, or IPRINT.
+printing = {{ samba_printing }}
+
+
+#
+# Shares
+#
+[netlogon]
+	path = /var/lib/samba/sysvol/{{ samba_dns_domain }}/scripts
+	read only = no
+
+[sysvol]
+	path = /var/lib/samba/sysvol
+	read only = no
+{% for name, opts in samba_shares | dictsort %}
+
+[{{ name }}]
+{% for key, val in opts | dictsort %}
+	{{ key }} = {{ val }}
+{% endfor %}
+{% endfor %}

@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  author: Jakub Jirutka
+  company: CTU in Prague
+  description: Install and configure Samba 4 as DC.
+  license: MIT
+  min_ansible_version: 1.8
+  platforms:
+    - name: Gentoo
+  categories:
+    - networking
+    - system

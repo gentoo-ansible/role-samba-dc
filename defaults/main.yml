@@ -1,0 +1,108 @@
+---
+# The Active Directory / DNS domain and Kerberos Realm.
+#
+# You should always use a subdomain of your domain name (e.g. ad.example.org).
+# Never use your domain name (example.org) for your AD DNS domain. Read
+# https://wiki.samba.org/index.php/Active_Directory_Naming_FAQ for more
+# information.
+#
+# IMPORTANT: Changing the AD domain later is a non-trivial task, so it is
+# important to get it right the first time!
+samba_dns_domain:
+
+# The NT4 NetBIOS domain name. This should be entered in all caps, and should
+# have a 15 character maximum length for compatibility with older clients.
+samba_netbios_domain:
+
+# Hostname (and NetBIOS name) of the Samba server.
+samba_hostname: "{{ ansible_hostname }}"
+
+# IPv4 address of the Samba server to use.
+# At least one of samba_host_ipv{4,6} should be provided.
+samba_host_ipv4: ''
+
+# IPv6 address of the Samba server to use.
+# At least one of samba_host_ipv{4,6} should be provided.
+samba_host_ipv6: ''
+
+# List of interface names (e.g. eth1) or IP addresses (e.g. 192.168.1.1) to
+# bind to.
+samba_interfaces:
+  - "{{ samba_host_ipv4 }}"
+  - "{{ samba_host_ipv6 }}"
+
+# Enable NetBIOS support?
+samba_netbios_enabled: yes
+
+# Allow Samba to announce itself with multicast DNS services?
+# This sets attribute "multicast dns register".
+samba_multicast_dns_enabled: yes
+
+# Specify the DNS server that DNS requests will be forwarded to if they can not
+# be handled by Samba itself. Use empty string to disable forwarding.
+samba_dns_forwarder: ''
+
+
+# Password for the administrator account.
+# You must select a strong password. The minimum requirements are one upper
+# case letter, one number, and at least eight characters. If you attempt to use
+# a password that does not meet the these requirements, provisioning will fail!
+samba_admin_password:
+
+# Shared resources (aka "shares") and their attributes.
+# Expects hash with share name as a key and hash of attributes as a value.
+# See smb.conf(5) for desription of all allowed options.
+#
+# Example:
+#   homes:
+#     comment: Home directory
+#     path: /home/%U
+#     browseable: no
+#     create mask: '0600'
+#   photosmart7400:
+#     path: /var/spool/samba
+#     printable: yes
+#     public: yes
+samba_shares: {}
+
+# Mapping of usernames from the server (unix name) to the clients (samba name).
+#
+# Example:
+#   root: [administrator, admin]
+#   flynn: Kevin Flynn
+samba_usernames_map: {}
+
+# Specify the directory where roaming profiles (Desktop, NTuser.dat, etc)
+# will be stored. Use empty string to disable the use of romaing profile.
+samba_logon_path: '\\%N\%U\profile'
+
+# What printing system do you use?
+# Choose one of: BSD, AIX, LPRNG, PLP, SYSV, HPUX, QNX, SOFTQ, CUPS, or IPRINT.
+samba_printing: LPRNG
+
+# Specify debug (logging) level.
+#   0  - error
+#   1  - warning
+#   2  - notice
+#   3  - info
+#   4+ - debug
+# See smb.conf(5) for more options.
+samba_log_level: 0
+
+
+# Path to a file (PEM format) containing the RSA certificate.
+samba_tls_cert_file: /var/lib/samba/private/tls/cert.pem
+
+# Path to a file (PEM format) containing the RSA private key.
+samba_tls_key_file: /var/lib/samba/private/tls/key.pem
+
+# Path to a file (PEM format) containing CA certificates of root CAs to trust
+# to sign certificates or intermediate CA certificates.
+samba_tls_ca_file: /var/lib/samba/private/tls/ca.pem
+
+# Number of bites of Diffie-Hellman modulus to be generated.
+samba_tls_dhparam_bits: 2048
+
+# Path to a file with Diffie-Hellman parameters for EDH ciphers, or empty
+# string to use default DH groups. It'll be generated if not exist yet.
+samba_tls_dhparam_file: /etc/ssl/dh{{ samba_tls_dhparam_bits }}.pem

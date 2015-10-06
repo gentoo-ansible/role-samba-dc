@@ -1,0 +1,39 @@
+---
+- name: verify that all TCP ports used by Samba are open
+  wait_for: >
+    host={{ samba_host_ipv4 if samba_host_ipv4 != '' else samba_host_ipv6 }}
+    port={{ item }}
+    timeout=10
+  with_items: [53, 88, 135, 445, 389, 464, 636, 3268, 3269]
+
+- name: verify that Samba's DNS is working as expected
+  shell: >
+    test "$(dig {{ item.query }} +short)" == '{{ item.expected }}'
+  changed_when: false
+  with_items:
+    - query: "{{ samba_dns_domain }} A"
+      expected: "{{ samba_host_ipv4 }}"
+    - query: "{{ samba_dns_domain }} AAAA"
+      expected: "{{ samba_host_ipv6 }}"
+    - query: "_ldap._tcp.{{ samba_dns_domain }} SRV"
+      expected: "0 100 389 {{ samba_hostname }}.{{ samba_dns_domain }}."
+    - query: "_kerberos._udp.{{ samba_dns_domain }} SRV"
+      expected: "0 100 88 {{ samba_hostname }}.{{ samba_dns_domain }}."
+  when: item.expected != ''
+
+- name: verify that password authentication is working as expected
+  command: >
+    smbclient4 //{{ samba_dns_domain }}/netlogon -U Administrator
+      --password={{ samba_admin_password }} -c 'ls'
+  changed_when: false
+
+- name: verify that KDC is working as expected
+  shell: >
+    kinit --password-file=<(echo -n '{{ samba_admin_password }}') administrator@{{ samba_dns_domain | upper }}
+    executable=/bin/bash
+  changed_when: false
+
+- name: verify that Kerberos authentication is working as expected
+  command: >
+    smbclient //{{ samba_hostname }}.{{ samba_dns_domain }}/netlogon -k -c 'ls'
+  changed_when: false

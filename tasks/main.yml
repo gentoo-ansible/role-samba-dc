@@ -1,0 +1,91 @@
+---
+- name: install packages
+  portage: package={{ item }}
+  with_items:
+    - net-fs/samba
+    - net-dns/bind-tools
+
+- name: install custom runscript
+  copy: >
+    src=runscript
+    dest=/etc/init.d/samba
+    owner=root group=root mode=0755
+
+- name: remove old runscript config
+  file: >
+    state=absent
+    path=/etc/conf.d/samba
+
+- name: prepare directories in /run to pass testparam
+  file: >
+    state=directory
+    path={{ item }}
+  with_items:
+    - /run/samba
+    - /run/lock/samba
+
+- name: provision domain (this will take a while)
+  command: >
+    samba-tool domain provision
+      --server-role=dc
+      --dns-backend=SAMBA_INTERNAL
+      --realm={{ samba_dns_domain | upper }}
+      --domain={{ samba_netbios_domain }}
+      --host-name={{ samba_hostname }}
+      {% if samba_host_ipv4 != '' %}--host-ip={{ samba_host_ipv4 }}{% endif %}
+      {% if samba_host_ipv6 != '' %}--host-ip6={{ samba_host_ipv6 }}{% endif %}
+      --adminpass='{{ samba_admin_password }}'
+      --use-xattrs=yes
+      --use-rfc2307
+    creates=/var/lib/samba/private/sam.ldb
+
+- name: configure smbusers
+  template: >
+    src=smbusers.j2
+    dest=/etc/samba/smbusers
+    owner=root group=root mode=0644
+  notify: reload samba
+
+- name: configure smb.conf
+  template: >
+    src=smb.conf.j2
+    dest=/etc/samba/smb.conf
+    owner=root group=root mode=0644
+    validate='testparm -s %s'
+  notify: restart samba
+
+- name: link krb5.conf
+  file: >
+    state=link
+    src=/var/lib/samba/private/krb5.conf
+    dest=/etc/krb5.conf
+    force=yes
+
+- name: generate unique Diffie-Hellman parameters (this will take few minutes)
+  command: >
+    openssl dhparam -out {{ samba_tls_dhparam_file }} {{ samba_tls_dhparam_bits }}
+    creates={{ samba_tls_dhparam_file }}
+  when: samba_tls_dhparam_file != ''
+  notify: reload samba
+
+- name: ensure permissions on TLS key file
+  file: >
+    path={{ samba_tls_key_file }}
+    owner=root mode=0600
+  when: samba_tls_key_file != ''
+
+- name: configure logrotate
+  copy: >
+    src=logrotate
+    dest=/etc/logrotate.d/samba
+    owner=root group=root mode=0644
+  ignore_errors: yes
+
+# Trigger handlers now to avoid unnecessary restarts.
+- meta: flush_handlers
+
+- name: enable and start samba
+  service: name=samba enabled=yes state=started
+  tags: samba-dc:services
+
+- include: check.yml tags=samba-dc:check

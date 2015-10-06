@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+
+/var/log/samba/log.* {
+	missingok
+	sharedscripts
+	copytruncate
+	postrotate
+		/etc/init.d/samba reload > /dev/null 2>&1 || true
+	endscript
+}

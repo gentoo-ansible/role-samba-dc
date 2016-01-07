@@ -77,8 +77,9 @@ samba_usernames_map: {}
 samba_logon_path: '\\%N\%U\profile'
 
 # What printing system do you use?
-# Choose one of: BSD, AIX, LPRNG, PLP, SYSV, HPUX, QNX, SOFTQ, CUPS, or IPRINT.
-samba_printing: LPRNG
+# Choose one of: BSD, AIX, LPRNG, PLP, SYSV, HPUX, QNX, SOFTQ, CUPS, IPRINT, or
+# "disable" to disable printing subsystem.
+samba_printing: disable
 
 # Specify debug (logging) level.
 #   0  - error

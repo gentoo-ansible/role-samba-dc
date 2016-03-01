@@ -113,7 +113,7 @@ deadtime = 60
 log level = {{ samba_log_level }}
 
 
-{% if samba_printing | lower == 'disable' %}
+{% if samba_printing | lower != 'disable' %}
 # This parameters controls how printer status information is interpreted on
 # your system; BSD, AIX, LPRNG, PLP, SYSV, HPUX, QNX, SOFTQ, CUPS, or IPRINT.
 printing = {{ samba_printing }}
